@@ -11,8 +11,8 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
 
-      - uses: pnpm/action-setup@v2.0.1
-        name: Install pnpm
+      - name: Install pnpm
+        uses: pnpm/action-setup@v2.0.1
         id: pnpm-install
         with:
           version: 7
@@ -29,16 +29,23 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - uses: actions/cache@v3
+        id: cache-build
         with:
-          path: '**/node_modules'
-          key: ${{ runner.os }}-node-modules-${{ hashFiles('**/pnpm-lock.yaml') }}
-          restore-keys: |
-            ${{ runner.os }}-pnpm-dependencies-
-            ${{ runner.os }}-
+          path: ./*
+          key: ${{ github.sha }}-react-next
+
+      # - uses: actions/cache@v3
+      #   with:
+      #     path: '**/node_modules'
+      #     key: ${{ runner.os }}-node-modules-${{ hashFiles('**/pnpm-lock.yaml') }}
+      #     restore-keys: |
+      #       ${{ runner.os }}-pnpm-dependencies-
+      #       ${{ runner.os }}-
 
   linting:
     name: Code Linting
     runs-on: ubuntu-20.04
+    needs: setup
     strategy:
       matrix:
         node-version: [16.x]
@@ -46,8 +53,21 @@ jobs:
       contents: read
       security-events: write
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
+      # - uses: pnpm/action-setup@v2.2.2
+      #   with:
+      #     version: 7
+
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v2
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'pnpm'
+
+      - uses: actions/cache@v3
+        id: restore-build
+        with:
+          path: ./*
+          key: ${{ github.sha }}-react-next
 
       - name: Run ESLint
         run: pnpm lint
