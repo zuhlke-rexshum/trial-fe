@@ -1,0 +1,70 @@
+name: Basic lint & build Workflow
+on: [push]
+jobs:
+  lint:
+    name: Code linting
+    runs-on: ubuntu-20.04
+    strategy:
+      matrix:
+        node-version: [16.x]
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@v3
+      - uses: ./.github/actions/pnpm-install
+
+      - uses: actions/cache@v3
+        id: restore-dependencies
+        with:
+          path: '**/node_modules'
+          key: ${{ runner.os }}-node-modules-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-dependencies-
+            ${{ runner.os }}-
+
+      - name: Run ESLint
+        run: pnpm lint
+          # --output-file eslint-results.sarif
+      #   continue-on-error: true
+
+      # - name: Upload analysis results to GitHub
+      #   uses: github/codeql-action/upload-sarif@v2
+      #   with:
+      #     sarif_file: eslint-results.sarif
+      #     wait-for-processing: true
+
+  build:
+    name: App build
+    runs-on: ubuntu-20.04
+    needs: lint
+    strategy:
+      matrix:
+        node-version: [16.x]
+    steps:
+      - uses: actions/checkout@v3
+      - uses: ./.github/actions/pnpm-install
+
+      - uses: actions/cache@v3
+        id: restore-dependencies
+        with:
+          path: '**/node_modules'
+          key: ${{ runner.os }}-node-modules-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-dependencies-
+            ${{ runner.os }}-
+
+      - run: pnpm build
+
+      - run: echo "🍏 This job's status is ${{ job.status }}."
+
+      # - uses: actions/cache@v3
+      #   id: cache-build
+      #   with:
+      #     path: ./*
+      #     key: ${{ github.sha }}-react-next
+      # - uses: actions/cache@v3
+      #   id: restore-build
+      #   with:
+      #     path: ./*
+      #     key: ${{ github.sha }}-react-next
